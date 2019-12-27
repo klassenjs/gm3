@@ -48,6 +48,8 @@ import DefaultLayouts from './printLayouts';
 
 import GeoPdfPlugin from './geopdf';
 
+import { FONTS } from './fonts';
+
 
 export default class PrintModal extends Modal {
 
@@ -96,8 +98,8 @@ export default class PrintModal extends Modal {
         const defaults = {
             size: 13,
             color: [0, 0, 0],
-            font: 'Arial',
-            fontStyle: 'normal'
+            font: 'NotoSans',
+            fontStyle: 'regular'
         };
 
         // create a new font definition object based on
@@ -239,6 +241,13 @@ export default class PrintModal extends Modal {
         }
         // new PDF document
         const doc = new jsPDF(layout.orientation, layout.units, layout.page);
+        for (const fontName in FONTS) {
+            // add the file to the VFS
+            doc.addFileToVFS(fontName, FONTS[fontName]);
+            // add the font.
+            const parts = fontName.replace('.ttf', '').split('-');
+            doc.addFont(fontName, parts[0], parts[1].toLowerCase());
+        }
 
         // add some fonts
         doc.addFont('Arial', 'Arial', 'normal');
