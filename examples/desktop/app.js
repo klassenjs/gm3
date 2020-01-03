@@ -173,7 +173,15 @@ app.loadMapbook({url: 'mapbook.xml'}).then(function() {
 
     app.add(gm3.components.Map, 'map', {});
 
-    var print_preview = app.add(gm3.components.PrintModal, 'print-preview', {});
+    var print_preview = app.add(gm3.components.PrintModal, 'print-preview', 
+        {
+            font: 'NotoSans',
+            FONTS: { 
+               'NotoSans-Regular.ttf': '',
+               'NotoSans-Bold.ttf': ''
+            }
+        });
+
     app.registerAction('print', function() {
         this.run = function() {
            print_preview.setState({open: true});

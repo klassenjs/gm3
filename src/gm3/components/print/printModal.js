@@ -48,8 +48,7 @@ import DefaultLayouts from './printLayouts';
 
 import GeoPdfPlugin from './geopdf';
 
-import { FONTS } from './fonts';
-
+import { xhr } from '../../util';
 
 export default class PrintModal extends Modal {
 
@@ -62,6 +61,11 @@ export default class PrintModal extends Modal {
         this.layouts = props.layouts ? props.layouts : DefaultLayouts;
 
         this.state = this.getMapSize(this.layouts[0], 1);
+
+        this.font = props.font ? props.font : 'Helvetica';
+        this.FONTS = props.FONTS ? props.FONTS : {};
+
+        // this.fetchFonts();  // this runs at GeoMoose startup. -- too soon
     }
 
     /* Print the PDF! Or, ya know, close the dialog.
@@ -69,8 +73,8 @@ export default class PrintModal extends Modal {
     close(status) {
         if(status === 'print') {
             const layout = parseInt(this.refs.layout.value, 10);
-            this.makePDF(this.layouts[layout]);
-            // tell the store that the print is done,
+            this.makePDF(this.layouts[layout])
+            // tell the store this the print is done,
             // this ensures that the memory is freed that was used
             // to store the (sometimes) enormous image.
             this.props.store.dispatch(printed());
@@ -98,7 +102,7 @@ export default class PrintModal extends Modal {
         const defaults = {
             size: 13,
             color: [0, 0, 0],
-            font: 'NotoSans',
+            font: this.font,
             fontStyle: 'regular'
         };
 
@@ -234,6 +238,22 @@ export default class PrintModal extends Modal {
         return n * k;
     }
 
+    async fetchFonts()
+    {
+        for (const fontName in this.FONTS) {
+            if (this.FONTS[fontName] === '') {
+                // fetch the font
+                console.error('Loading font ' + fontName);
+                // if only this worked for binary files...
+                const resp = await xhr({
+                    url: '../../dist/fonts/' + fontName + '.b64'
+                });
+
+                this.FONTS[fontName] = resp.response
+            }
+        }
+    }
+
     makePDF(layout) {
         // check for and install the geopdf plugin
         if(!jsPDF.API.setGeoArea) {
@@ -241,17 +261,15 @@ export default class PrintModal extends Modal {
         }
         // new PDF document
         const doc = new jsPDF(layout.orientation, layout.units, layout.page);
-        for (const fontName in FONTS) {
+
+        for (const fontName in this.FONTS) {
             // add the file to the VFS
-            doc.addFileToVFS(fontName, FONTS[fontName]);
+            doc.addFileToVFS(fontName, this.FONTS[fontName]);
+
             // add the font.
             const parts = fontName.replace('.ttf', '').split('-');
             doc.addFont(fontName, parts[0], parts[1].toLowerCase());
         }
-
-        // add some fonts
-        doc.addFont('Arial', 'Arial', 'normal');
-        doc.addFont('Arial-Bold', 'Arial', 'bold');
 
         // iterate through the elements of the layout
         //  and place them in the document.
@@ -362,6 +380,12 @@ export default class PrintModal extends Modal {
     }
 
     renderBody() {
+        // Make sure any custom fonts get loaded.
+        // Ideally this would get called when print is started the first time
+        // And ideally this would grey out the print button until done.
+        // Calling this is makePDF would be even better, but then have async timing issues.
+        this.fetchFonts();
+
         // small set of CSS hacks to keep the print map
         //  invisible but drawn.
         const map_style_hack = {

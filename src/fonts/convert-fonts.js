@@ -38,7 +38,8 @@ fs.readdir('.', (err, items) => {
         if (item.endsWith('.ttf')) {
             // open and encode...
             const fontContents = fs.readFileSync(item).toString('base64');
-            fontDict[item] = fontContents;
+            fs.writeFileSync('../../dist/fonts/' + item + '.b64', fontContents);
+            fontDict[item] = '';
         }
     }
 
